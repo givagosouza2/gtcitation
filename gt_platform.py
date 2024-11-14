@@ -6,7 +6,7 @@ from wordcloud import WordCloud
 import numpy as np
 from matplotlib.ticker import MaxNLocator
 
-st.set_page_config(layout='wide')
+st.set_page_config(layout='wide',page_icon = 'book', page_title = "GT-Scientometrics")
 
 st.title('Proposta de avaliação das ações acadêmicas de pesquisadores')
 st.write("### Organização GT de psicobiologia, neurociência e comportamento")

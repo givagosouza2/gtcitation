@@ -6,7 +6,8 @@ from wordcloud import WordCloud
 
 st.set_page_config(layout='wide')
 
-st.title('Proposta de avaliação de produtividade do pesquisador')
+st.title('Proposta de avaliação das ações acadêmicas de pesquisadores')
+st.write("### Organização GT de psicobiologia, neurociência e comportamento")
 
 uploaded_file = st.file_uploader(
     "Faça o upload do CitationOverview da Scopus", type="csv")

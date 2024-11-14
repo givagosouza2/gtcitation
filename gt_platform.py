@@ -124,7 +124,7 @@ if uploaded_file is not None:
 
     st.title("Distribuição das citações por ano")
     valores = st.text_input(
-        "Insira entre vírgulas o índice da produção que deseja ver o número de citações ou escreva Todos", "3, 5")
+        "Insira entre vírgulas o índice da produção que deseja ver o número de citações ou escreva Todos", "1")
     filtro1 = st.selectbox("Indique o tipo de saída que deseja ter", [
                            'Individual', 'Conjunta'])
     if valores == "Todos":

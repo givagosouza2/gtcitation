@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 from wordcloud import WordCloud
+import numpy as np
+from matplotlib.ticker import MaxNLocator
 
 st.set_page_config(layout='wide')
 
@@ -40,6 +42,11 @@ if uploaded_file is not None:
 
     st.dataframe(df_data)
 
+    for index in np.arange(df_data["Total"].shape[0]):
+        if index > pd.to_numeric(df_data["Total"].iloc[index]):
+            hindex = index-1
+            break
+
     st.title('Resumo')
     st.markdown("Total de " +
                 str(data['Document Title'].shape[0]) + " publicações")
@@ -50,10 +57,11 @@ if uploaded_file is not None:
     n_total_citations = df.iloc[5, -3]
     st.markdown(str(n_total_citations) +
                 " citações na carreira")
+    st.markdown('Índice H = ' + str(hindex))
 
-    col1, col2 = st.columns([1, 0.725])
+    col1, col2 = st.columns([1, 1])
     with col1:
-        st.title("Produção por periódicos")
+        st.title("Proporção da produção por periódicos")
         values = data["Journal Title"].value_counts(normalize=True) * 100
         labels = values.index  # Rótulos originais
 
@@ -72,7 +80,7 @@ if uploaded_file is not None:
         # Exibir o gráfico no Streamlit
         st.pyplot(fig)
     with col2:
-        st.title("Produção por ano")
+        st.title("Proporção da produção por ano")
 
         values = data["Publication Year"].value_counts(normalize=True) * 100
         labels = values.index  # Rótulos originais
@@ -92,10 +100,29 @@ if uploaded_file is not None:
         # Exibir o gráfico no Streamlit
         st.pyplot(fig)
 
+    col1, col2, col3 = st.columns([0.3, 1, 0.3])
+    producao = data["Publication Year"].value_counts(normalize=False)
+
+    anos_producao = producao.index  # Os valores únicos da coluna "Publication Year"
+    contagem_producao = producao.values
+    with col2:
+        st.title("Distribuição da produção por ano")
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.bar(anos_producao, contagem_producao)
+
+        ax.set_xlabel('Ano')
+        ax.set_ylabel('Número de publicações')
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+        # Exibir o gráfico de dispersão
+        st.pyplot(fig)
+
     # Garantir que n_citation seja numérico
     # Converte para numérico
     anos = pd.to_numeric(anos)
     # Lista de índices de linhas
+
+    st.title("Distribuição das citações por ano")
     valores = st.text_input(
         "Insira entre vírgulas o índice da produção que deseja ver o número de citações ou escreva Todos", "3, 5")
     filtro1 = st.selectbox("Indique o tipo de saída que deseja ter", [
@@ -153,6 +180,7 @@ if uploaded_file is not None:
                 ax.set_xlabel('Ano')
                 ax.set_ylabel('Número de Citações')
                 st.pyplot(fig)
+
     col1, col2 = st.columns(2)
     with col1:
         # Concatenar todo o texto em uma string única

@@ -54,16 +54,46 @@ if uploaded_file is not None:
             break
 
     st.title('Resumo')
-    st.markdown("Total de " +
-                str(data['Document Title'].shape[0]) + " publicações")
-    num_ocorrencias = (df_data['Publication Year'] >
-                       datetime.now().year - 5).sum()
-    st.markdown(str(num_ocorrencias) +
-                " publicações nos últimos 5 anos")
-    n_total_citations = df.iloc[5, -3]
-    st.markdown(str(n_total_citations) +
-                " citações na carreira")
-    st.markdown('Índice H = ' + str(hindex))
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("### Avaliação da carreira")
+        st.markdown(str(data['Document Title'].shape[0]) +
+                    " publicações")
+        n_total_citations = df.iloc[5, -3]
+        st.markdown(str(n_total_citations) +
+                    " citações")
+        st.markdown('Índice H de ' + str(hindex))
+
+        df_data['JIF'] = df_data['JIF'].fillna(0)
+        fi = pd.to_numeric(df_data['JIF'], errors='coerce')
+
+        fi_avg = np.mean(fi)
+        fi_avg_zero = fi[fi != 0].mean()
+        df_ordenado = df_data.sort_values(by='Total', ascending=False)
+        fi_citted = df_ordenado["JIF"].iloc[0:]
+        st.markdown(
+            'Fator de impacto médio de ' + str(round(fi_avg, 3)))
+        # st.markdown('Fator de impacto médio dos artigos qualificados de ' + str(round(fi_avg_zero, 3)))
+        st.markdown("Fator de impacto médio das 5 produções mais citadas de " +
+                    str(round(pd.to_numeric(fi_citted).mean(), 3)))
+    with col2:
+        st.write("### Avaliação dos últimos 5 anos")
+        num_ocorrencias = (df_data['Publication Year'] >
+                           datetime.now().year - 5).sum()
+        st.markdown(str(num_ocorrencias) +
+                    " publicações")
+        n_total_citations_5 = df.iloc[6:, -7:-3]
+        citations_5 = ((n_total_citations_5).sum()).sum()
+        st.markdown(str(citations_5) +
+                    " citações")
+        fi_5 = df_data[df_data['Publication Year']
+                       > (datetime.now().year - 5)]['JIF']
+        st.markdown("Fator de impacto médio de " +
+                    str(round(pd.to_numeric(fi_5).mean(), 3)))
+        df_ordenado = df_data.sort_values(by='Total', ascending=False)
+        fi_citted = df_ordenado["JIF"].iloc[0:4]
+        st.markdown("Fator de impacto médio das 5 produções mais citadas " +
+                    str(round(pd.to_numeric(fi_citted).mean(), 3)))
 
     col1, col2 = st.columns([1, 0.65])
     with col1:

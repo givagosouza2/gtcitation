@@ -5,8 +5,10 @@ from datetime import datetime
 from wordcloud import WordCloud
 import numpy as np
 from matplotlib.ticker import MaxNLocator
+import plotly.graph_objects as go
 
-st.set_page_config(layout='wide',page_icon = 'book', page_title = "GT-Scientometrics")
+st.set_page_config(layout='wide', page_icon='book',
+                   page_title='GT produção acadêmica')
 
 st.title('Proposta de avaliação das ações acadêmicas de pesquisadores')
 st.write("### Organização GT de psicobiologia, neurociência e comportamento")
@@ -19,6 +21,7 @@ if uploaded_file is not None:
     st.title("Base de dados")
     # Carregar a base de dados a partir da linha 7
     df = pd.read_csv(uploaded_file)
+    jif = pd.read_csv("jif.csv")
 
     data = {
         'Publication Year': pd.to_numeric(df.iloc[6:, 0]),
@@ -39,7 +42,10 @@ if uploaded_file is not None:
         data[col_name] = df.iloc[6:, i]
 
     df_data = pd.DataFrame(data)
-
+    # Padronizando as colunas de nomes para letras minúsculas
+    df_data['Journal Title'] = df_data['Journal Title'].str.lower()
+    jif['Journal Title'] = jif['Journal Title'].str.lower()
+    df_data = df_data.merge(jif, on='Journal Title', how='left')
     st.dataframe(df_data)
 
     for index in np.arange(df_data["Total"].shape[0]):
@@ -59,7 +65,7 @@ if uploaded_file is not None:
                 " citações na carreira")
     st.markdown('Índice H = ' + str(hindex))
 
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns([1, 0.65])
     with col1:
         st.title("Proporção da produção por periódicos")
         values = data["Journal Title"].value_counts(normalize=True) * 100
@@ -72,6 +78,7 @@ if uploaded_file is not None:
         )  # Soma dos valores < 5%
 
         # Gerar o gráfico de pizza
+
         fig, ax = plt.subplots()
         ax.pie(values_filtered, labels=values_filtered.index,
                autopct='%1.1f%%', startangle=90)
@@ -80,7 +87,7 @@ if uploaded_file is not None:
         # Exibir o gráfico no Streamlit
         st.pyplot(fig)
     with col2:
-        st.title("Proporção da produção por ano")
+        st.title("Produção por ano")
 
         values = data["Publication Year"].value_counts(normalize=True) * 100
         labels = values.index  # Rótulos originais
@@ -100,22 +107,133 @@ if uploaded_file is not None:
         # Exibir o gráfico no Streamlit
         st.pyplot(fig)
 
-    col1, col2, col3 = st.columns([0.3, 1, 0.3])
+    col1, col2 = st.columns([0.85, 1])
+    with col1:
+        st.title("Proporção da produção por fator de impacto")
+        values = df_data["JIF"].value_counts(normalize=True) * 100
+        labels = values.index  # Rótulos originais
+
+        # Agrupar valores menores que 5% na categoria "Outros"
+        mask = values >= 2.5
+        values_filtered = values[mask]
+        values_filtered["Outros"] = values[~mask].sum(
+        )  # Soma dos valores < 5%
+
+        # Gerar o gráfico de pizza
+
+        fig, ax = plt.subplots()
+        ax.pie(values_filtered, labels=values_filtered.index,
+               autopct='%1.1f%%', startangle=90)
+        ax.axis('equal')  # Assegura que o gráfico fique circular
+
+        # Exibir o gráfico no Streamlit
+        st.pyplot(fig)
+    with col2:
+        st.title("Produção por faixa de fator de impacto")
+        df_data['JIF'] = df_data['JIF'].fillna(0)
+        fi = pd.to_numeric(df_data['JIF'], errors='coerce')
+
+        contagem_IF_a = (fi < 1).sum()
+        contagem_IF_b = ((fi >= 1) & (fi < 5)).sum()
+        contagem_IF_c = (fi > 5).sum()
+        total = contagem_IF_a + contagem_IF_b + contagem_IF_c
+        # Gerar o gráfico de pizza
+        fig, ax = plt.subplots()
+        ax.bar(["<1", ">=1 e <5", ">=5"], [
+               contagem_IF_a/total, contagem_IF_b/total, contagem_IF_c/total])
+
+        # Adicionar rótulos e título
+        ax.set_ylabel('Quantidade de artigos')
+        ax.set_xlabel('Fator de impacto')
+
+        # Exibir o gráfico no Streamlit
+        st.pyplot(fig)
+
+    col1, col2, col3 = st.columns([1, 0.1, 1])
     producao = data["Publication Year"].value_counts(normalize=False)
 
     anos_producao = producao.index  # Os valores únicos da coluna "Publication Year"
     contagem_producao = producao.values
-    with col2:
-        st.title("Distribuição da produção por ano")
-        fig, ax = plt.subplots(figsize=(10, 4))
-        ax.bar(anos_producao, contagem_producao)
 
-        ax.set_xlabel('Ano')
-        ax.set_ylabel('Número de publicações')
-        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    todos = df.iloc[6:, 6:-3].sum()
+    n_citation = pd.to_numeric(todos.values, errors='coerce')
 
-        # Exibir o gráfico de dispersão
-        st.pyplot(fig)
+    with col1:
+        st.title("Produção x citação por ano")
+        # Criação do gráfico
+        fig = go.Figure()
+
+        # Gráfico de barra
+        fig.add_trace(
+            go.Bar(
+                x=anos_producao,
+                y=contagem_producao,
+                name='Produções',
+                yaxis='y1'
+            )
+        )
+
+        # Gráfico de dispersão
+        fig.add_trace(
+            go.Scatter(
+                x=anos,
+                y=n_citation,
+                name='Citações',
+                mode='markers+lines',
+                # Cor e tamanho dos marcadores
+                marker=dict(color='red', size=10),
+                line=dict(color='red', width=2),
+                yaxis='y2'
+            )
+        )
+
+        # Configuração dos eixos
+        fig.update_layout(
+            xaxis=dict(title='Ano'),
+            yaxis=dict(
+                title='Número de publicações',
+                titlefont=dict(color='blue'),
+                tickfont=dict(color='blue')
+            ),
+            yaxis2=dict(
+                title='Número de citações',
+                titlefont=dict(color='red'),
+                tickfont=dict(color='red'),
+                overlaying='y',
+                side='right'
+            ),
+            legend=dict(x=0, y=0.5, orientation='h'),
+        )
+
+        # Renderizando no Streamlit
+        st.plotly_chart(fig)
+
+    with col3:
+        st.title("Citações nos últimos 5 anos")
+        ultimos_5anos = df.iloc[6:, -8:-3].sum()
+        n_citation = pd.to_numeric(ultimos_5anos.values, errors='coerce')
+
+        fig = go.Figure()
+
+        # Gráfico de barra
+        fig.add_trace(
+            go.Bar(
+                x=anos[-5:],
+                y=n_citation,
+                name='Produções',
+                yaxis='y1'
+            )
+        )
+
+        fig.update_layout(
+            xaxis=dict(title='Ano'),
+            yaxis=dict(
+                title='Número de Citações',
+                titlefont=dict(color='Black'),
+                tickfont=dict(color='Black')
+            )
+        )
+        st.plotly_chart(fig)
 
     # Garantir que n_citation seja numérico
     # Converte para numérico
@@ -124,7 +242,7 @@ if uploaded_file is not None:
 
     st.title("Distribuição das citações por ano")
     valores = st.text_input(
-        "Insira entre vírgulas o índice da produção que deseja ver o número de citações ou escreva Todos", "1")
+        "Insira entre vírgulas o índice da produção que deseja ver o número de citações ou escreva Todos", "3, 5")
     filtro1 = st.selectbox("Indique o tipo de saída que deseja ter", [
                            'Individual', 'Conjunta'])
     if valores == "Todos":
@@ -155,7 +273,7 @@ if uploaded_file is not None:
                 for local in indices:
                     linhas_selecionadas = df_data.iloc[local]
                     n_citation = pd.to_numeric(
-                        linhas_selecionadas.iloc[6:-3].values, errors='coerce')
+                        linhas_selecionadas.iloc[6:-5].values, errors='coerce')
                     ax.plot(anos, n_citation, '-o',
                             label=str(df_data.iloc[local].iloc[3]))
                 ax.legend()
